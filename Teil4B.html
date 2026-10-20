@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teil 4B: Interaktives Linsen- & Augen-Labor – MaReCuM Physik</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #1e293b;
+      --surface-hover: #334155;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.12);
+      --exam: #f59e0b;
+      --exam-bg: rgba(245, 158, 11, 0.12);
+      --clinic: #10b981;
+      --clinic-bg: rgba(16, 185, 129, 0.12);
+      --radius: 10px;
+    }
+    body.light {
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --surface-hover: #f8fafc;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --accent: #0284c7;
+      --accent-soft: rgba(2, 132, 199, 0.1);
+      --exam: #d97706;
+      --exam-bg: rgba(217, 119, 6, 0.08);
+      --clinic: #059669;
+      --clinic-bg: rgba(5, 150, 105, 0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.6; padding: 24px;
+      max-width: 1300px; margin: 0 auto;
+    }
+    header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;
+    }
+    .brand { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+    .subtitle { font-size: 0.82rem; color: var(--text-muted); }
+    .ctrl-btn {
+      padding: 8px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--surface); color: var(--text); cursor: pointer; font-size: 0.85rem; font-weight: 600;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 6px; color: var(--accent); }
+    h2 { font-size: 1.15rem; margin: 24px 0 12px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+    .sim-wrapper {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px; margin-bottom: 24px;
+    }
+    canvas.sim-canvas {
+      width: 100%; height: auto; background: #070d19;
+      border: 1px solid var(--border); border-radius: 8px; display: block; margin-bottom: 14px;
+    }
+    body.light canvas.sim-canvas { background: #f8fafc; }
+    .preset-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; align-items: center; }
+    .preset-bar strong { font-size: 0.85rem; margin-right: 4px; }
+    .preset-btn {
+      padding: 6px 11px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); cursor: pointer; font-size: 0.8rem; font-weight: 600;
+      transition: all 0.15s;
+    }
+    .preset-btn:hover, .preset-btn.active {
+      border-color: var(--accent); background: var(--accent-soft); color: var(--accent);
+    }
+    .slider-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px;
+    }
+    .slider-box {
+      background: var(--bg); padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+    }
+    .slider-box label {
+      display: flex; justify-content: space-between; font-size: 0.84rem; font-weight: 600; margin-bottom: 4px;
+    }
+    .slider-box input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+    .status-banner {
+      padding: 12px 16px; border-radius: 8px; border-left: 4px solid var(--accent);
+      background: var(--bg); font-size: 0.88rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <div class="brand">MaReCuM Physik – Teil 4B</div>
+      <div class="subtitle">Interaktives Simulationslabor: Optische Bank & Augenmodell[cite: 123, 173, 202]</div>
+    </div>
+    <button class="ctrl-btn" onclick="document.body.classList.toggle('light'); drawLensSim(); drawEyeSim();">🌗 Hell / Dunkel umschalten</button>
+  </header>
+
+  <!-- SIMULATOR 1: OPTISCHE BANK -->
+  <h1>1. Simulator A: Die Optische Bank (Linsen, Strahlengang & Schirmschärfe)</h1>
+  <p class="section-lead">Simuliert alle 5–6 Fälle des Praktikums: Reelle Bilder, virtuelle Bilder, Unendlichkeits-Strahlengang ($g = f$) und das Zerstreuungsscheibchen bei unscharfem Schirm[cite: 133, 192, 197].</p>
+
+  <div class="sim-wrapper">
+    <div class="preset-bar">
+      <strong>Praktikums-Presets:</strong>
+      <button class="preset-btn" onclick="setLensPreset('konvex', 100, 260, 50)">1. g &gt; 2f (verkleinert)</button>
+      <button class="preset-btn" onclick="setLensPreset('konvex', 100, 200, 50)">2. g = 2f (gleich groß)</button>
+      <button class="preset-btn" onclick="setLensPreset('konvex', 100, 145, 50)">3. f &lt; g &lt; 2f (Diaprojektor)</button>
+      <button class="preset-btn" onclick="setLensPreset('konvex', 100, 100, 50)">4. g = f (Parallelstrahlen)</button>
+      <button class="preset-btn" onclick="setLensPreset('konvex', 100, 65, 45)">5. g &lt; f (Lupe / virtuell)</button>
+      <button class="preset-btn" onclick="setLensPreset('konkav', -100, 160, 60)">6. Zerstreuungslinse</button>
+    </div>
+
+    <canvas id="lensCanvas" class="sim-canvas" width="940" height="400"></canvas>
+
+    <div class="slider-grid">
+      <div class="slider-box">
+        <label><span>Linsentyp[cite: 184]:</span> <span id="lblLensType">Sammellinse</span></label>
+        <select id="selLensType" style="width:100%; padding:5px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:5px;" onchange="onLensTypeChange()">
+          <option value="konvex">Konvex (Sammellinse, f &gt; 0)</option>
+          <option value="konkav">Konkav (Zerstreuungslinse, f &lt; 0)</option>
+        </select>
+      </div>
+      <div class="slider-box">
+        <label><span>Brennweite |f|:</span> <span id="valF">100 mm (+10 dpt)</span></label>
+        <input type="range" id="slF" min="50" max="160" step="5" value="100" oninput="updateLensSim()">
+      </div>
+      <div class="slider-box">
+        <label><span>Gegenstandsweite g:</span> <span id="valG">145 mm</span></label>
+        <input type="range" id="slG" min="30" max="380" step="1" value="145" oninput="updateLensSim()">
+      </div>
+      <div class="slider-box">
+        <label><span>Gegenstandsgröße G:</span> <span id="valH">50 mm</span></label>
+        <input type="range" id="slH" min="20" max="110" step="2" value="50" oninput="updateLensSim()">
+      </div>
+      <div class="slider-box">
+        <label>
+          <span>Schirm-Abstand s:</span>
+          <span id="valS">318 mm</span>
+        </label>
+        <input type="range" id="slS" min="40" max="430" step="1" value="318" oninput="updateLensSim(false)">
+        <div style="margin-top:4px; font-size:0.78rem;">
+          <label style="justify-content:flex-start; gap:6px; cursor:pointer;">
+            <input type="checkbox" id="chkAutoScreen" checked onchange="updateLensSim()"> Schirm automatisch auf b einstellen
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-banner" id="lensStatusBanner"></div>
+  </div>
+
+
+  <!-- SIMULATOR 2: DAS AUGE & FEHLSICHTIGKEITEN -->
+  <h1>2. Simulator B: Das Auge, Fehlsichtigkeit, Brille & Unterwasser-Sehen</h1>
+  <p class="section-lead">Simuliert Emmetropie, Myopie, Hyperopie, Brillenkorrekturen und das Corneale Brechkraft-Desaster unter Wasser (wo n=1,33 den Brechungsindex-Sprung fast aufhebt)[cite: 187, 198, 200].</p>
+
+  <div class="sim-wrapper">
+    <div class="preset-bar">
+      <strong>Szenarien:</strong>
+      <button class="preset-btn" onclick="setEyePreset('emmetrop', 0, 'luft', 500)">1. Normalsichtig in Luft</button>
+      <button class="preset-btn" onclick="setEyePreset('myop', 0, 'luft', 500)">2. Kurzsichtig (Myop) unkorrigiert</button>
+      <button class="preset-btn" onclick="setEyePreset('myop', -4, 'luft', 500)">3. Kurzsichtig + Konkavbrille (−4 dpt)</button>
+      <button class="preset-btn" onclick="setEyePreset('hyperop', 0, 'luft', 500)">4. Weitsichtig (Hyperop) unkorrigiert</button>
+      <button class="preset-btn" onclick="setEyePreset('hyperop', 4, 'luft', 500)">5. Weitsichtig + Konvexbrille (+4 dpt)</button>
+      <button class="preset-btn" onclick="setEyePreset('emmetrop', 0, 'wasser', 500)">6. 🌊 Unter Wasser (Cornea nur ~5 dpt!)</button>
+    </div>
+
+    <canvas id="eyeCanvas" class="sim-canvas" width="940" height="300"></canvas>
+
+    <div class="slider-grid">
+      <div class="slider-box">
+        <label><span>Auge-Typ[cite: 200]:</span></label>
+        <select id="selEyeType" style="width:100%; padding:5px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:5px;" onchange="drawEyeSim()">
+          <option value="emmetrop">Emmetrop (Länge 24,4 mm)</option>
+          <option value="myop">Myop (Auge zu lang / zu stark)</option>
+          <option value="hyperop">Hyperop (Auge zu kurz / zu schwach)</option>
+        </select>
+      </div>
+      <div class="slider-box">
+        <label><span>Medium[cite: 187, 198]:</span></label>
+        <select id="selEyeMed" style="width:100%; padding:5px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:5px;" onchange="drawEyeSim()">
+          <option value="luft">Luft (Cornea ≈ 42 dpt)</option>
+          <option value="wasser">Wasser (Cornea ≈ 5 dpt)</option>
+        </select>
+      </div>
+      <div class="slider-box">
+        <label><span>Brille D<sub>Brille</sub>[cite: 200, 212]:</span> <span id="valGlasses">0,0 dpt</span></label>
+        <input type="range" id="slGlasses" min="-8" max="8" step="0.5" value="0" oninput="drawEyeSim()">
+      </div>
+      <div class="slider-box">
+        <label><span>Objektentfernung g[cite: 199]:</span> <span id="valEyeDist">5,0 m</span></label>
+        <input type="range" id="slEyeDist" min="25" max="500" step="25" value="500" oninput="drawEyeSim()">
+      </div>
+      <div class="slider-box">
+        <label><span>Akkommodation[cite: 132, 199]:</span> <span id="valEyeAcc">+0,2 dpt</span></label>
+        <input type="range" id="slEyeAcc" min="0" max="6" step="0.2" value="0.2" oninput="drawEyeSim()">
+      </div>
+    </div>
+
+    <div class="status-banner" id="eyeStatusBanner"></div>
+  </div>
+
+
+  <script>
+    // ==================== SIMULATOR 1 ====================
+    function onLensTypeChange() {
+      const type = document.getElementById('selLensType').value;
+      document.getElementById('lblLensType').textContent = type === 'konvex' ? 'Sammellinse' : 'Zerstreuungslinse';
+      updateLensSim(true);
+    }
+
+    function setLensPreset(type, fAbs, gVal, hVal) {
+      document.getElementById('selLensType').value = type;
+      document.getElementById('lblLensType').textContent = type === 'konvex' ? 'Sammellinse' : 'Zerstreuungslinse';
+      document.getElementById('slF').value = Math.abs(fAbs);
+      document.getElementById('slG').value = gVal;
+      document.getElementById('slH').value = hVal;
+      document.getElementById('chkAutoScreen').checked = true;
+      updateLensSim(true);
+    }
+
+    function updateLensSim(autoSync = true) {
+      const type = document.getElementById('selLensType').value;
+      const fAbs = parseFloat(document.getElementById('slF').value);
+      const f = type === 'konvex' ? fAbs : -fAbs;
+      const g = parseFloat(document.getElementById('slG').value);
+      const G = parseFloat(document.getElementById('slH').value);
+      const autoScreen = document.getElementById('chkAutoScreen').checked;
+
+      const D = 1000 / f;
+      document.getElementById('valF').textContent = (f > 0 ? '+' : '') + f + ' mm (' + (D > 0 ? '+' : '') + D.toFixed(1) + ' dpt)';
+      document.getElementById('valG').textContent = g + ' mm';
+      document.getElementById('valH').textContent = G + ' mm';
+
+      let b = Infinity;
+      if (Math.abs(g - f) > 0.5) b = (f * g) / (g - f);
+
+      if (autoScreen && b > 0 && isFinite(b)) {
+        document.getElementById('slS').value = Math.min(430, Math.max(40, Math.round(b)));
+      }
+      const s = parseFloat(document.getElementById('slS').value);
+      document.getElementById('valS').textContent = s + ' mm';
+
+      drawLensSim(f, g, G, b, s);
+    }
+
+    function drawArrow(ctx, x, y0, y1, color, lineWidth = 3) {
+      ctx.save();
+      ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = lineWidth;
+      ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+      const dir = y1 < y0 ? -1 : 1;
+      ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x - 6, y1 - dir * 10); ctx.lineTo(x + 6, y1 - dir * 10);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    function drawLensSim(fParam, gParam, GParam, bParam, sParam) {
+      const canvas = document.getElementById('lensCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const isLight = document.body.classList.contains('light');
+
+      const type = document.getElementById('selLensType').value;
+      const fAbs = parseFloat(document.getElementById('slF').value);
+      const f = fParam !== undefined ? fParam : (type === 'konvex' ? fAbs : -fAbs);
+      const g = gParam !== undefined ? gParam : parseFloat(document.getElementById('slG').value);
+      const G = GParam !== undefined ? GParam : parseFloat(document.getElementById('slH').value);
+      const b = bParam !== undefined ? bParam : (Math.abs(g - f) > 0.5 ? (f * g) / (g - f) : Infinity);
+      const s = sParam !== undefined ? sParam : parseFloat(document.getElementById('slS').value);
+
+      const W = canvas.width, H = canvas.height, cx = 440, cy = H / 2, lensHalfH = 145;
+
+      ctx.clearRect(0, 0, W, H);
+      ctx.strokeStyle = isLight ? '#e2e8f0' : '#1e293b'; ctx.lineWidth = 1;
+      for (let x = 40; x < W; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 40; y < H; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      ctx.strokeStyle = isLight ? '#64748b' : '#94a3b8'; ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(10, cy); ctx.lineTo(W - 10, cy); ctx.stroke(); ctx.setLineDash([]);
+
+      // Linse
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.22)'; ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      if (f > 0) {
+        ctx.moveTo(cx, cy - lensHalfH); ctx.quadraticCurveTo(cx + 28, cy, cx, cy + lensHalfH);
+        ctx.quadraticCurveTo(cx - 28, cy, cx, cy - lensHalfH);
+      } else {
+        ctx.moveTo(cx - 20, cy - lensHalfH); ctx.lineTo(cx + 20, cy - lensHalfH);
+        ctx.quadraticCurveTo(cx + 6, cy, cx + 20, cy + lensHalfH); ctx.lineTo(cx - 20, cy + lensHalfH);
+        ctx.quadraticCurveTo(cx - 6, cy, cx - 20, cy - lensHalfH);
+      }
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+
+      // Brennpunkte
+      const pts = [
+        { x: cx - Math.abs(f), label: f > 0 ? "F'" : "F (virt.)" },
+        { x: cx + Math.abs(f), label: f > 0 ? "F" : "F' (virt.)" }
+      ];
+      ctx.fillStyle = isLight ? '#0f172a' : '#f8fafc'; ctx.font = 'bold 12px sans-serif';
+      pts.forEach(p => {
+        if (p.x > 15 && p.x < W - 15) {
+          ctx.beginPath(); ctx.arc(p.x, cy, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.fillText(p.label, p.x - 10, cy + 18);
+        }
+      });
+
+      // Schirm
+      const screenX = cx + s;
+      ctx.strokeStyle = isLight ? '#334155' : '#cbd5e1'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(screenX, cy - 165); ctx.lineTo(screenX, cy + 165); ctx.stroke();
+      ctx.fillStyle = isLight ? '#334155' : '#cbd5e1'; ctx.font = '12px sans-serif';
+      ctx.fillText('Schirm (s=' + s + ')', screenX - 35, cy - 172);
+
+      // Gegenstand
+      const objX = cx - g, objTopY = cy - G;
+      drawArrow(ctx, objX, cy, objTopY, '#10b981', 3.5);
+      ctx.fillStyle = '#10b981'; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('Gegenstand G', objX - 38, objTopY - 8);
+
+      // Strahlen
+      const slope1 = (cy - objTopY) / f, slope2 = (cy - objTopY) / g;
+      const xRightEnd = W;
+      const y1RightEnd = objTopY + slope1 * (xRightEnd - cx);
+      const y2RightEnd = cy + slope2 * (xRightEnd - cx);
+
+      ctx.strokeStyle = '#f87171'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(objX, objTopY); ctx.lineTo(cx, objTopY); ctx.lineTo(xRightEnd, y1RightEnd); ctx.stroke();
+
+      ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(objX, objTopY); ctx.lineTo(cx, cy); ctx.lineTo(xRightEnd, y2RightEnd); ctx.stroke();
+
+      if (b < 0 && isFinite(b)) {
+        const imgX = cx + b, B = G * (b / g), imgTopY = cy + B;
+        ctx.save(); ctx.setLineDash([5, 5]); ctx.strokeStyle = '#f87171';
+        ctx.beginPath(); ctx.moveTo(cx, objTopY); ctx.lineTo(imgX, imgTopY); ctx.stroke();
+        ctx.strokeStyle = '#fbbf24'; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(imgX, imgTopY); ctx.stroke();
+        ctx.restore();
+        drawArrow(ctx, imgX, cy, imgTopY, '#a855f7', 3.5);
+        ctx.fillStyle = '#a855f7'; ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('Virtuelles Bild B', imgX - 42, imgTopY - 10);
+      }
+
+      if (b > 0 && isFinite(b)) {
+        const imgX = cx + b, B_real = G * (b / g), imgTopY = cy + B_real;
+        if (imgX < W + 200) {
+          drawArrow(ctx, imgX, cy, imgTopY, '#38bdf8', 3.5);
+          ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 12px sans-serif';
+          ctx.fillText('Reelles Bild B', Math.min(W - 95, imgX - 35), Math.min(H - 12, imgTopY + 18));
+        }
+
+        const yRay1AtScreen = objTopY + slope1 * s;
+        const yRay2AtScreen = cy + slope2 * s;
+        const blurDiameter = Math.abs(yRay1AtScreen - yRay2AtScreen);
+
+        if (blurDiameter > 1.5) {
+          ctx.save(); ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 6;
+          ctx.beginPath(); ctx.moveTo(screenX, yRay1AtScreen); ctx.lineTo(screenX, yRay2AtScreen); ctx.stroke();
+          ctx.fillStyle = '#f43f5e'; ctx.font = 'bold 11px sans-serif';
+          ctx.fillText('Unscharf! (Zerstreuung)', screenX + 8, (yRay1AtScreen + yRay2AtScreen) / 2);
+          ctx.restore();
+        }
+      }
+
+      // Status
+      const banner = document.getElementById('lensStatusBanner');
+      if (!isFinite(b) || Math.abs(b) > 5000) {
+        banner.innerHTML = `<div><strong>Fall:</strong> g = f (Brennweitenpunkt)[cite: 191, 192]</div><div><strong>Bildweite b:</strong> ∞</div><div><strong>Schirm:</strong> Kein Bild</div>`;
+      } else if (b < 0) {
+        banner.innerHTML = `<div><strong>Bildart:</strong> Virtuell &amp; aufrecht[cite: 190, 192]</div><div><strong>b:</strong> ${b.toFixed(1)} mm</div><div><strong>Schirm:</strong> Nicht auffangbar[cite: 127]</div>`;
+      } else {
+        const isSharp = Math.abs(s - b) < 3;
+        banner.innerHTML = `<div><strong>Bildart:</strong> Reell &amp; umgekehrt[cite: 189, 192]</div><div><strong>b:</strong> +${b.toFixed(1)} mm</div><div><strong>Schirm:</strong> ${isSharp ? '<span style="color:#10b981; font-weight:700;">Scharf (s=b)</span>' : '<span style="color:#f87171; font-weight:700;">Unscharf (Δs=' + Math.abs(s - b).toFixed(0) + ' mm)</span>'}</div>`;
+      }
+    }
+
+    // ==================== SIMULATOR 2 ====================
+    function setEyePreset(type, glasses, med, distCm) {
+      document.getElementById('selEyeType').value = type;
+      document.getElementById('selEyeMed').value = med;
+      document.getElementById('slGlasses').value = glasses;
+      document.getElementById('slEyeDist').value = distCm;
+      document.getElementById('slEyeAcc').value = (100 / distCm).toFixed(1);
+      drawEyeSim();
+    }
+
+    function drawEyeSim() {
+      const canvas = document.getElementById('eyeCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const isLight = document.body.classList.contains('light');
+
+      const eyeType = document.getElementById('selEyeType').value;
+      const med = document.getElementById('selEyeMed').value;
+      const dGlasses = parseFloat(document.getElementById('slGlasses').value);
+      const distCm = parseFloat(document.getElementById('slEyeDist').value);
+      const dAcc = parseFloat(document.getElementById('slEyeAcc').value);
+
+      const g_m = distCm / 100;
+      document.getElementById('valGlasses').textContent = (dGlasses > 0 ? '+' : '') + dGlasses.toFixed(1) + ' dpt';
+      document.getElementById('valEyeDist').textContent = g_m.toFixed(2) + ' m';
+      document.getElementById('valEyeAcc').textContent = '+' + dAcc.toFixed(1) + ' dpt';
+
+      const dCornea = med === 'luft' ? 42.0 : 5.0;
+      const dLensBase = 16.0;
+      const dAnomaly = eyeType === 'myop' ? 4.0 : (eyeType === 'hyperop' ? -4.0 : 0.0);
+      const dTotalEye = dCornea + dLensBase + dAcc + dAnomaly + dGlasses;
+      const dRequired = 58.0 + (1 / g_m);
+      const dDiff = dTotalEye - dRequired;
+
+      const W = canvas.width, H = canvas.height, cy = H / 2;
+      ctx.clearRect(0, 0, W, H);
+
+      if (med === 'wasser') {
+        ctx.fillStyle = 'rgba(14, 165, 233, 0.12)'; ctx.fillRect(0, 0, 390, H);
+        ctx.fillStyle = '#38bdf8'; ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('🌊 UNTER WASSER (Cornea nur ~5 dpt!)', 20, 28);
+      }
+
+      ctx.strokeStyle = isLight ? '#64748b' : '#94a3b8'; ctx.setLineDash([5, 5]);
+      ctx.beginPath(); ctx.moveTo(20, cy); ctx.lineTo(W - 20, cy); ctx.stroke(); ctx.setLineDash([]);
+
+      const corneaX = 390, eyeRadiusY = 95;
+      const retinaX = eyeType === 'myop' ? 645 : (eyeType === 'hyperop' ? 565 : 605);
+      const centerX = (corneaX + retinaX) / 2, rx = (retinaX - corneaX) / 2;
+
+      ctx.fillStyle = isLight ? '#e0f2fe' : '#1e293b'; ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(centerX, cy, rx, eyeRadiusY, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.beginPath(); ctx.arc(corneaX + 12, cy, 52, Math.PI * 0.68, Math.PI * 1.32); ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.35)'; ctx.strokeStyle = '#fbbf24';
+      ctx.beginPath(); ctx.ellipse(corneaX + 32, cy, 10 + dAcc * 0.8, 42, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+      ctx.strokeStyle = '#10b981'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(centerX, cy, rx, -0.45, 0.45); ctx.stroke();
+      ctx.fillStyle = '#10b981'; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('Retina', retinaX + 10, cy + 4);
+
+      if (Math.abs(dGlasses) > 0.1) {
+        const gx = corneaX - 45;
+        ctx.strokeStyle = '#a855f7'; ctx.fillStyle = 'rgba(168, 85, 247, 0.22)'; ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        if (dGlasses > 0) ctx.ellipse(gx, cy, 8, 55, 0, 0, Math.PI * 2);
+        else {
+          ctx.moveTo(gx - 9, cy - 55); ctx.lineTo(gx + 9, cy - 55); ctx.quadraticCurveTo(gx + 2, cy, gx + 9, cy + 55);
+          ctx.lineTo(gx - 9, cy + 55); ctx.quadraticCurveTo(gx - 2, cy, gx - 9, cy - 55);
+        }
+        ctx.fill(); ctx.stroke();
+      }
+
+      const focusShiftPx = -dDiff * 9.5;
+      const focusX = Math.min(W - 25, Math.max(corneaX + 60, retinaX + focusShiftPx));
+
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2;
+      [-36, -18, 18, 36].forEach(offsetY => {
+        ctx.beginPath();
+        ctx.moveTo(30, cy + offsetY * (500 / distCm) * 0.4);
+        ctx.lineTo(corneaX + 20, cy + offsetY);
+        ctx.lineTo(focusX, cy);
+        if (focusX < retinaX) {
+          const slope = (0 - offsetY) / (focusX - (corneaX + 20));
+          ctx.lineTo(retinaX, cy + slope * (retinaX - focusX));
+        }
+        ctx.stroke();
+      });
+
+      const isSharpEye = Math.abs(dDiff) <= 0.35;
+      ctx.fillStyle = isSharpEye ? '#10b981' : '#f43f5e';
+      ctx.beginPath(); ctx.arc(focusX, cy, 5, 0, Math.PI * 2); ctx.fill();
+
+      document.getElementById('eyeStatusBanner').innerHTML = `
+        <div><strong>Fokus-Lage:</strong> ${isSharpEye ? 'Exakt auf Retina' : (dDiff > 0 ? 'VOR Retina (myop)' : 'HINTER Retina (hyperop)')}</div>
+        <div><strong>Status:</strong> ${isSharpEye ? '<span style="color:#10b981; font-weight:700;">✓ SCHARF</span>' : '<span style="color:#f87171; font-weight:700;">✗ UNSCHARF</span>'}</div>
+      `;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      updateLensSim(true);
+      drawEyeSim();
+    });
+  </script>
+</body>
+</html>
